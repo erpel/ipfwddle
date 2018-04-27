@@ -52,18 +52,18 @@ ipfw() {
 
 while getopts cf: arg
 do
-    case ${arg} in
-        c)
-            fdl_cleanup
-            ;;
-	f)
-	    rules_file="${OPTARG}"
-	    ;;
-        ?)
-	    fdl_printhelp
-            echoerr "invalid argument"
-	    exit 1
-    esac
+	case ${arg} in
+		c)
+			fdl_cleanup
+			;;
+		f)
+			rules_file="${OPTARG}"
+			;;
+		?)
+			fdl_printhelp
+			echoerr "invalid argument"
+			exit 1
+	esac
 done
 
 if [ -z $rules_file ]; then

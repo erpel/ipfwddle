@@ -39,5 +39,7 @@ If contact is lost before the swap of the rules or something else messes with th
 ipfwddle is a poor mans replacement for the ferm firewall management tool for iptables on GNU/Linux systems.
 Developed on and intended for FreeBSD.
 
+# Code style
+The project has almost no style but for consistency tabs are used for indentation exclusively until something easier is chosen.
 
 Any feedback or contributions are appreciated.
