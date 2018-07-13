@@ -24,6 +24,8 @@ exiterr() {
 
 fdl_printhelp() {
 	echo "Use -c for cleanup mode. Not intended for human invocation"
+	echo "Use -f to specify rules file"
+	echo "USe -l to just load the rules file into the run set"
 }
 
 fdl_cleanup() {
@@ -38,6 +40,14 @@ fdl_cleanup() {
 	exit 0
 }
 
+# function that performs loading the script without interactive
+# confirmation
+fdl_load_only() {
+	echo "$rules_file"
+	. "${rules_file}"
+	$fwcmd set swap $PREP_SET $RUN_SET
+}
+
 # function to replace ipfw and insert set number
 ipfw() {
 	if [ "$1" = "add" ]; then
@@ -50,7 +60,7 @@ ipfw() {
 	fi
 }
 
-while getopts cf: arg
+while getopts cf:l arg
 do
 	case ${arg} in
 		c)
@@ -58,6 +68,10 @@ do
 			;;
 		f)
 			rules_file="${OPTARG}"
+			;;
+		l)
+			fdl_load_only
+			exit 0
 			;;
 		?)
 			fdl_printhelp
@@ -73,6 +87,7 @@ fi
 echo "Checking if set $PREP_SET is empty"
 initial_prep_set_rules=$($fwcmd -S set $PREP_SET  list )
 if [ -n "$initial_prep_set_rules" ]; then
+	echoerr "Hint: use ipfw delete set $PREP_SET to empty the preparation set"
 	exiterr "Set $PREP_SET is not empty" $ERR_PREP_NOT_EMPTY
 fi
 
@@ -93,6 +108,7 @@ case ${answer} in
 	[yY])
 		echo "killing cleanup task"
 		kill $(cat ${CLEANUP_PIDFILE})
+		$fwcmd delete set $PREP_SET
 		;;
 	?)
 		echo "Finished without killing cleanup task."
