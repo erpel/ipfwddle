@@ -22,18 +22,18 @@ fdl_exiterr() {
 fdl_printhelp() {
 	echo "Use -c for cleanup mode. Not intended for human invocation"
 	echo "Use -f to specify rules file"
-	echo "USe -l to just load the rules file into the run set"
+	echo "Use -l to just load the rules file into the run set"
 }
 
 fdl_cleanup() {
-	echo "begin waiting ${fdl_WAITTIME}s for cleanup" $(date) >>  /tmp/ran_cleanup
+	echo "Begin waiting ${fdl_WAITTIME}s for cleanup" $(date) >>  /tmp/ran_cleanup
 	sleep $fdl_WAITTIME
 	echo done waiting $(date) >>  /tmp/ran_cleanup
 	
 	# actual recovery: swapping back the sets
 	$fdl_fwcmd set swap $fdl_RUN_SET $fld_PREP_SET
 
-	echo cleanup done >> $fdl_CLEANUP_LOGFILE
+	echo "cleanup done" >> $fdl_CLEANUP_LOGFILE
 	exit 0
 }
 
@@ -52,7 +52,7 @@ ipfw() {
 		rulenumber=$1; shift
 		/sbin/ipfw -q $subcmd $rulenumber set $fld_PREP_SET $*
 	else
-		fld_echoerr "unsupported command in set based script: $*"
+		fld_echoerr "Unsupported command in set based script: $*"
 		$fdl_fwcmd $*
 	fi
 }
@@ -72,8 +72,8 @@ do
 			;;
 		?)
 			fdl_printhelp
-			fld_echoerr "invalid argument"
-			exit 1
+			fld_echoerr "Invalid argument"
+			exit $fdl_ERR_INVALID_ARG
 	esac
 done
 
@@ -103,7 +103,7 @@ echo -e "\nAnswer: ${fdl_answer}"
 
 case ${fdl_answer} in
 	[yY])
-		echo "killing cleanup task"
+		echo "Killing cleanup task"
 		kill $(cat ${fdl_CLEANUP_PIDFILE})
 		$fdl_fwcmd delete set $fld_PREP_SET
 		;;
