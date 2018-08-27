@@ -1,51 +1,48 @@
 #!/bin/sh
-CLEANUP_PIDFILE=/tmp/fiddle_cleanup.pid
-CLEANUP_LOGFILE=/tmp/ran_cleanup
-RUN_SET=3
-PREP_SET=4
-WAITTIME=20
+fdl_CLEANUP_PIDFILE=/tmp/fiddle_cleanup.pid
+fdl_CLEANUP_LOGFILE=/tmp/ran_cleanup
+fdl_RUN_SET=3
+fld_PREP_SET=4
+fdl_WAITTIME=20
 
-# legacy support
-waittime=$WAITTIME
+fdl_fwcmd=/sbin/ipfw
 
-fwcmd=/sbin/ipfw
+fdl_ERR_INVALID_ARG=1
+fdl_ERR_UNKNOWN=2
+fdl_ERR_DAEMON_FAIL=3
+fdl_ERR_PREP_NOT_EMPTY=4
+fdl_ERR_RULES_FILE_MISSING=5
 
-ERR_INVALID_ARG=1
-ERR_UNKNOWN=2
-ERR_DAEMON_FAIL=3
-ERR_PREP_NOT_EMPTY=4
-ERR_RULES_FILE_MISSING=5
-
-echoerr() { printf "%s\n" "$*" >&2; }
-exiterr() { 
-	echoerr "$1"
+fld_echoerr() { printf "%s\n" "$*" >&2; }
+fdl_exiterr() {
+	fld_echoerr "$1"
 	exit $2
 }
 
 fdl_printhelp() {
 	echo "Use -c for cleanup mode. Not intended for human invocation"
 	echo "Use -f to specify rules file"
-	echo "USe -l to just load the rules file into the run set"
+	echo "Use -l to just load the rules file into the run set"
 }
 
 fdl_cleanup() {
-	echo "begin waiting ${waittime}s for cleanup" $(date) >>  /tmp/ran_cleanup
-	sleep $waittime
+	echo "Begin waiting ${fdl_WAITTIME}s for cleanup" $(date) >>  /tmp/ran_cleanup
+	sleep $fdl_WAITTIME
 	echo done waiting $(date) >>  /tmp/ran_cleanup
 	
 	# actual recovery: swapping back the sets
-	$fwcmd set swap $RUN_SET $PREP_SET
+	$fdl_fwcmd set swap $fdl_RUN_SET $fld_PREP_SET
 
-	echo cleanup done >> $CLEANUP_LOGFILE
+	echo "cleanup done" >> $fdl_CLEANUP_LOGFILE
 	exit 0
 }
 
 # function that performs loading the script without interactive
 # confirmation
 fdl_load_only() {
-	echo "$rules_file"
-	. "${rules_file}"
-	$fwcmd set swap $PREP_SET $RUN_SET
+	echo "$fdl_rules_file"
+	. "${fdl_rules_file}"
+	$fdl_fwcmd set swap $fld_PREP_SET $fdl_RUN_SET
 }
 
 # function to replace ipfw and insert set number
@@ -53,10 +50,10 @@ ipfw() {
 	if [ "$1" = "add" ]; then
 		subcmd=$1; shift
 		rulenumber=$1; shift
-		/sbin/ipfw -q $subcmd $rulenumber set $PREP_SET $*
+		/sbin/ipfw -q $subcmd $rulenumber set $fld_PREP_SET $*
 	else
-		echoerr "unsupported command in set based script: $*"
-		$fwcmd $*
+		fld_echoerr "Unsupported command in set based script: $*"
+		$fdl_fwcmd $*
 	fi
 }
 
@@ -67,7 +64,7 @@ do
 			fdl_cleanup
 			;;
 		f)
-			rules_file="${OPTARG}"
+			fdl_rules_file="${OPTARG}"
 			;;
 		l)
 			fdl_load_only
@@ -75,46 +72,46 @@ do
 			;;
 		?)
 			fdl_printhelp
-			echoerr "invalid argument"
-			exit 1
+			fld_echoerr "Invalid argument"
+			exit $fdl_ERR_INVALID_ARG
 	esac
 done
 
-if [ -z $rules_file ]; then
-	exiterr "Rules file missing" $ERR_RULES_FILE_MISSING
+if [ -z $fdl_rules_file ]; then
+	fdl_exiterr "Rules file missing" $fdl_ERR_RULES_FILE_MISSING
 fi
 
-echo "Checking if set $PREP_SET is empty"
-initial_prep_set_rules=$($fwcmd -S set $PREP_SET  list )
+echo "Checking if set $fld_PREP_SET is empty"
+initial_prep_set_rules=$($fdl_fwcmd -S set $fld_PREP_SET  list )
 if [ -n "$initial_prep_set_rules" ]; then
-	echoerr "Hint: use ipfw delete set $PREP_SET to empty the preparation set"
-	exiterr "Set $PREP_SET is not empty" $ERR_PREP_NOT_EMPTY
+	fld_echoerr "Hint: use ipfw delete set $fld_PREP_SET to empty the preparation set"
+	fdl_exiterr "Set $fld_PREP_SET is not empty" $fdl_ERR_PREP_NOT_EMPTY
 fi
 
-daemon -p ${CLEANUP_PIDFILE} $0 -c || exiterr "Cleanup process already running." $ERR_DAEMON_FAIL
+daemon -p ${fdl_CLEANUP_PIDFILE} $0 -c || fdl_exiterr "Cleanup process already running." $fdl_ERR_DAEMON_FAIL
 
 # currently setting the prep set to diabled by force
-$fwcmd set disable $PREP_SET
+$fdl_fwcmd set disable $fld_PREP_SET
 
 ## actual dangerous work here
-. "${rules_file}"
-$fwcmd set swap $PREP_SET $RUN_SET
+. "${fdl_rules_file}"
+$fdl_fwcmd set swap $fld_PREP_SET $fdl_RUN_SET
 
-echo -n "Are you still there? (Y/n) ${waittime} seconds to respond... "
-read -t ${waittime}s answer
-echo -e "\nAnswer: ${answer}"
+echo -n "Are you still there? (Y/n) ${fdl_WAITTIME} seconds to respond... "
+read -t ${fdl_WAITTIME}s fdl_answer
+echo -e "\nAnswer: ${fdl_answer}"
 
-case ${answer} in
+case ${fdl_answer} in
 	[yY])
-		echo "killing cleanup task"
-		kill $(cat ${CLEANUP_PIDFILE})
-		$fwcmd delete set $PREP_SET
+		echo "Killing cleanup task"
+		kill $(cat ${fdl_CLEANUP_PIDFILE})
+		$fdl_fwcmd delete set $fld_PREP_SET
 		;;
 	?)
 		echo "Finished without killing cleanup task."
-		echo "Cleanup will commence after regular timeout of $WAITTIME seconds from initial invocation"
+		echo "Cleanup will commence after regular timeout of $fdl_WAITTIME seconds from initial invocation"
 		echo "Do not forget to inspect the result and delete set $PREP_SET afterwards"
-		echo "Cleanup task pid: $(cat ${CLEANUP_PIDFILE})"
+		echo "Cleanup task pid: $(cat ${fdl_CLEANUP_PIDFILE})"
 esac
 
 
