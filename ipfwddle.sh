@@ -1,6 +1,7 @@
 #!/bin/sh
-set -x
-echo $@
+#set -x
+#echo $@
+
 fdl_CLEANUP_PIDFILE=/tmp/fiddle_cleanup.pid
 fdl_CLEANUP_LOGFILE=/tmp/ran_cleanup
 fdl_RUN_SET=3
@@ -56,7 +57,10 @@ ipfw() {
 	if [ "$1" = "add" ]; then
 		subcmd=$1; shift
 		rulenumber=$1; shift
-		/sbin/ipfw -q $subcmd $rulenumber set $fld_PREP_SET $*
+		$fdl_fwcmd -q $subcmd $rulenumber set $fld_PREP_SET $*
+		if [ "$?" != "0" ]; then
+			echo $fdl_fwcmd -q $subcmd $rulenumber set $fld_PREP_SET $*
+		fi
 	else
 		fld_echoerr "Unsupported command in set based script: $*"
 		$fdl_fwcmd $*
