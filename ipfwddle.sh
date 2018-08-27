@@ -113,6 +113,7 @@ case ${answer} in
 	?)
 		echo "Finished without killing cleanup task."
 		echo "Cleanup will commence after regular timeout of $WAITTIME seconds from initial invocation"
+		echo "Do not forget to inspect the result and delete set $PREP_SET afterwards"
 		echo "Cleanup task pid: $(cat ${CLEANUP_PIDFILE})"
 esac
 
