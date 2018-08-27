@@ -1,9 +1,13 @@
 #!/bin/sh
+set -x
+echo $@
 fdl_CLEANUP_PIDFILE=/tmp/fiddle_cleanup.pid
 fdl_CLEANUP_LOGFILE=/tmp/ran_cleanup
 fdl_RUN_SET=3
 fld_PREP_SET=4
 fdl_WAITTIME=20
+
+fdl_MODE=""
 
 fdl_fwcmd=/sbin/ipfw
 
@@ -40,9 +44,11 @@ fdl_cleanup() {
 # function that performs loading the script without interactive
 # confirmation
 fdl_load_only() {
-	echo "$fdl_rules_file"
+	echo "Loading $fdl_rules_file"
+	$fdl_fwcmd delete set $fld_PREP_SET
 	. "${fdl_rules_file}"
 	$fdl_fwcmd set swap $fld_PREP_SET $fdl_RUN_SET
+	$fdl_fwcmd delete set $fld_PREP_SET
 }
 
 # function to replace ipfw and insert set number
@@ -67,8 +73,7 @@ do
 			fdl_rules_file="${OPTARG}"
 			;;
 		l)
-			fdl_load_only
-			exit 0
+			fdl_MODE="load"
 			;;
 		?)
 			fdl_printhelp
@@ -79,6 +84,10 @@ done
 
 if [ -z $fdl_rules_file ]; then
 	fdl_exiterr "Rules file missing" $fdl_ERR_RULES_FILE_MISSING
+fi
+if [ "$fdl_MODE" = "load" ]; then
+	fdl_load_only
+	exit 0
 fi
 
 echo "Checking if set $fld_PREP_SET is empty"
